@@ -1,8 +1,5 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
-var Router = require('react-router').Router;
-var Route = require('react-router').Route;
-var Link = require('react-router').Link;
 
 var Issue = React.createClass({
   render: function() {
@@ -13,9 +10,9 @@ var Issue = React.createClass({
           {this.props.number + " - " + this.props.title}
         </h2>
         <h4>
-          {this.props.labels.map(function(label) {
+          {this.props.labels.map(function(label, index) {
             return (
-              <span key={label.url}>{label.name}&nbsp;</span>
+              <span key={index}>{label.name}&nbsp;</span>
             )
           })}
         </h4>
@@ -32,7 +29,7 @@ var IssueBox = React.createClass({
     this.setState({repo: obj.repo});
 
     $.ajax({
-      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues",
+      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=25&state=all",
       dataType: 'json',
       cache: false,
       success: function(data) {
@@ -44,19 +41,34 @@ var IssueBox = React.createClass({
     });
   },
   getInitialState: function() {
-    return {data: [], owner: '', repo: ''};
+    return {data: [], owner: '', repo: '', page: 1};
   },
   componentDidMount: function() {
     // this.loadIssuesFromServer();
   },
+  nextPage: function() {
+    this.state.page++;
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25&state=all",
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({data: this.state.data.concat(data)});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
   render: function() {
-    if(this.state.owner && this.state.owner) {
+    if(this.state.owner && this.state.repo) {
       return (
         <div className="issueBox">
           <h1>Github Issues Explorer</h1>
           <h3>{this.state.owner + "/" + this.state.repo}</h3>
           <IssueForm onIssueSubmit={this.handleRequestSubmit} />
           <IssueList data={this.state.data} />
+          <button onClick={this.nextPage} className="next-page-btn">Load More</button>
         </div>
       );
     } else {

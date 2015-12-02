@@ -23,7 +23,7 @@ Install browserify
 npm install -g browserify
 ```
 
-and run gulp
+and run gulp within the root of the directory
 
 ```sh
 gulp
