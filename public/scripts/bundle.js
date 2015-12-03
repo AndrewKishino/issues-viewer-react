@@ -23925,10 +23925,177 @@ var ReactDOM = require('react-dom');
 var Router = require('react-router').Router;
 var Route = require('react-router').Route;
 var Link = require('react-router').Link;
+var Redirect = require('react-router').Redirect;
 var createHistory = require('history').createHashHistory;
 
-var history = createHistory({
-  queryKey: false
+var Home = React.createClass({
+  displayName: 'Home',
+
+  handleRequestSubmit: function (obj) {
+    var location = "/#/" + obj.owner + "/" + obj.repo + "/issues/";
+    document.location.href = location;
+    // this.setState({page: 1});
+    // this.setState({owner: obj.owner});
+    // this.setState({repo: obj.repo});
+  },
+  getInitialState: function () {
+    return { owner: '', repo: '' };
+  },
+  componentDidMount: function () {
+    // this.loadIssuesFromServer();
+  },
+  render: function () {
+    return React.createElement(
+      'div',
+      { className: 'home' },
+      React.createElement(
+        'h1',
+        null,
+        'Github Issues Explorer'
+      ),
+      React.createElement(SearchForm, { onIssueSubmit: this.handleRequestSubmit })
+    );
+  }
+});
+
+var SearchForm = React.createClass({
+  displayName: 'SearchForm',
+
+  getInitialState: function () {
+    return { owner: '', repo: '' };
+  },
+  handleOwnerChange: function (e) {
+    this.setState({ owner: e.target.value });
+  },
+  handleRepoChange: function (e) {
+    this.setState({ repo: e.target.value });
+  },
+  handleSubmit: function (e) {
+    e.preventDefault();
+    var owner = this.state.owner.trim();
+    var repo = this.state.repo.trim();
+    if (!repo || !owner) {
+      return;
+    }
+    this.props.onIssueSubmit({ owner: owner, repo: repo });
+  },
+  render: function () {
+    return React.createElement(
+      'form',
+      { className: 'searchForm', onSubmit: this.handleSubmit },
+      React.createElement('input', {
+        type: 'text',
+        id: 'owner',
+        placeholder: 'Owner',
+        value: this.props.owner,
+        onChange: this.handleOwnerChange
+      }),
+      React.createElement('input', {
+        type: 'text',
+        id: 'repo',
+        placeholder: 'Repository',
+        value: this.props.repo,
+        onChange: this.handleRepoChange
+      }),
+      React.createElement('input', { type: 'submit', value: 'Post' })
+    );
+  }
+});
+
+var IssuesBox = React.createClass({
+  displayName: 'IssuesBox',
+
+  handleRequestSubmit: function (obj) {
+    this.setState({ page: 1 });
+    this.setState({ owner: obj.owner });
+    this.setState({ repo: obj.repo });
+
+    $.ajax({
+      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=25",
+      dataType: 'json',
+      cache: false,
+      success: (function (data) {
+        this.setState({ data: data });
+      }).bind(this),
+      error: (function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }).bind(this)
+    });
+  },
+  getInitialState: function () {
+    return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 0 };
+  },
+  componentDidMount: function () {
+    this.loadIssuesFromServer();
+  },
+  loadIssuesFromServer: function () {
+    this.state.page++;
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25",
+      dataType: 'json',
+      cache: false,
+      success: (function (data) {
+        this.setState({ data: this.state.data.concat(data) });
+      }).bind(this),
+      error: (function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }).bind(this)
+    });
+  },
+  render: function () {
+    return React.createElement(
+      'div',
+      { className: 'issuesBox' },
+      React.createElement(
+        Link,
+        { to: '/' },
+        React.createElement(
+          'h1',
+          null,
+          'Github Issues Explorer'
+        )
+      ),
+      React.createElement(
+        'h3',
+        null,
+        this.props.params.owner + "/" + this.props.params.repo
+      ),
+      React.createElement(IssueList, { data: this.state.data }),
+      React.createElement(
+        'button',
+        { onClick: this.loadIssuesFromServer, className: 'next-page-btn' },
+        'Load More'
+      )
+    );
+  }
+});
+
+var IssueList = React.createClass({
+  displayName: 'IssueList',
+
+  render: function () {
+    var issueNodes = this.props.data.map(function (issue) {
+      var re = /repos\/(.+)\/(.+)\/issues/;
+      var match = re.exec(issue.url);
+      return React.createElement(Issue, {
+        key: issue.id,
+        id: issue.id,
+        owner: match[1],
+        repo: match[2],
+        number: issue.number,
+        title: issue.title,
+        labels: issue.labels,
+        username: issue.user.login,
+        avatar: issue.user.avatar_url,
+        summary: issue.body
+      });
+    });
+    return React.createElement(
+      'div',
+      { className: 'issueList' },
+      issueNodes
+    );
+  }
 });
 
 var Issue = React.createClass({
@@ -23944,7 +24111,7 @@ var Issue = React.createClass({
         { className: 'issueTitle' },
         React.createElement(
           Link,
-          { to: `/${ this.props.owner }/${ this.props.repo }/issue/${ this.props.id }` },
+          { to: `/${ this.props.owner }/${ this.props.repo }/issues/${ this.props.id }` },
           this.props.number + " - " + this.props.title
         )
       ),
@@ -23970,158 +24137,6 @@ var Issue = React.createClass({
   }
 });
 
-var IssuesBox = React.createClass({
-  displayName: 'IssuesBox',
-
-  handleRequestSubmit: function (obj) {
-    this.setState({ page: 1 });
-    this.setState({ owner: obj.owner });
-    this.setState({ repo: obj.repo });
-
-    $.ajax({
-      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=100",
-      dataType: 'json',
-      cache: false,
-      success: (function (data) {
-        this.setState({ data: data });
-      }).bind(this),
-      error: (function (xhr, status, err) {
-        console.error(this.props.url, status, err.toString());
-      }).bind(this)
-    });
-  },
-  getInitialState: function () {
-    return { data: [], owner: '', repo: '', page: 1 };
-  },
-  componentDidMount: function () {
-    // this.loadIssuesFromServer();
-  },
-  nextPage: function () {
-    this.state.page++;
-    $.ajax({
-      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=100",
-      dataType: 'json',
-      cache: false,
-      success: (function (data) {
-        this.setState({ data: this.state.data.concat(data) });
-      }).bind(this),
-      error: (function (xhr, status, err) {
-        console.error(this.props.url, status, err.toString());
-      }).bind(this)
-    });
-  },
-  render: function () {
-    if (this.state.owner && this.state.repo) {
-      return React.createElement(
-        'div',
-        { className: 'issuesBox' },
-        React.createElement(
-          'h1',
-          null,
-          'Github Issues Explorer'
-        ),
-        React.createElement(
-          'h3',
-          null,
-          this.state.owner + "/" + this.state.repo
-        ),
-        React.createElement(IssueForm, { onIssueSubmit: this.handleRequestSubmit }),
-        React.createElement(IssueList, { data: this.state.data }),
-        React.createElement(
-          'button',
-          { onClick: this.nextPage, className: 'next-page-btn' },
-          'Load More'
-        )
-      );
-    } else {
-      return React.createElement(
-        'div',
-        { className: 'issuesBox' },
-        React.createElement(
-          'h1',
-          null,
-          'Github Issues Explorer'
-        ),
-        React.createElement(IssueForm, { onIssueSubmit: this.handleRequestSubmit }),
-        React.createElement(IssueList, { data: this.state.data })
-      );
-    }
-  }
-});
-
-var IssueList = React.createClass({
-  displayName: 'IssueList',
-
-  render: function () {
-    var issueNodes = this.props.data.map(function (issue) {
-      var re = /repos\/(\w+)\/(\w+)\/issues/;
-      var match = re.exec(issue.url);
-      console.log(match);
-      return React.createElement(Issue, {
-        key: issue.id,
-        id: issue.id,
-        owner: match[1],
-        repo: match[2],
-        number: issue.number,
-        title: issue.title,
-        labels: issue.labels,
-        username: issue.user.login,
-        avatar: issue.user.avatar_url,
-        summary: issue.body
-      });
-    });
-    return React.createElement(
-      'div',
-      { className: 'issueList' },
-      issueNodes
-    );
-  }
-});
-
-var IssueForm = React.createClass({
-  displayName: 'IssueForm',
-
-  getInitialState: function () {
-    return { owner: '', repo: '' };
-  },
-  handleOwnerChange: function (e) {
-    this.setState({ owner: e.target.value });
-  },
-  handleRepoChange: function (e) {
-    this.setState({ repo: e.target.value });
-  },
-  handleSubmit: function (e) {
-    e.preventDefault();
-    var owner = this.state.owner.trim();
-    var repo = this.state.repo.trim();
-    if (!repo || !owner) {
-      return;
-    }
-    this.props.onIssueSubmit({ owner: owner, repo: repo });
-  },
-  render: function () {
-    return React.createElement(
-      'form',
-      { className: 'issueForm', onSubmit: this.handleSubmit },
-      React.createElement('input', {
-        type: 'text',
-        id: 'owner',
-        placeholder: 'Owner',
-        value: this.props.owner,
-        onChange: this.handleOwnerChange
-      }),
-      React.createElement('input', {
-        type: 'text',
-        id: 'repo',
-        placeholder: 'Repository',
-        value: this.props.repo,
-        onChange: this.handleRepoChange
-      }),
-      React.createElement('input', { type: 'submit', value: 'Post' })
-    );
-  }
-});
-
 var IssueDetails = React.createClass({
   displayName: 'IssueDetails',
 
@@ -24134,11 +24149,16 @@ var IssueDetails = React.createClass({
   }
 });
 
+var history = createHistory({
+  queryKey: false
+});
+
 ReactDOM.render(React.createElement(
   Router,
   { history: history },
-  React.createElement(Route, { path: '/', component: IssuesBox }),
-  React.createElement(Route, { path: '/:owner/:repo/issue/:issueid', component: IssueDetails })
+  React.createElement(Route, { path: '/', component: Home }),
+  React.createElement(Route, { path: '/:owner/:repo/issues', component: IssuesBox }),
+  React.createElement(Route, { path: '/:owner/:repo/issues/:issueid', component: IssueDetails })
 ), document.getElementById('content'));
 
 },{"history":17,"react":214,"react-dom":32,"react-router":52}]},{},[215]);
