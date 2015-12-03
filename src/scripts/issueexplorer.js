@@ -1,5 +1,13 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
+var Router = require('react-router').Router;
+var Route = require('react-router').Route;
+var Link = require('react-router').Link;
+var createHistory = require('history').createHashHistory;
+
+var history = createHistory({
+  queryKey: false
+});
 
 var Issue = React.createClass({
   render: function() {
@@ -7,12 +15,12 @@ var Issue = React.createClass({
       <div className="issue">
         <img className="avatar" src={this.props.avatar}/>
         <h2 className="issueTitle">
-          {this.props.number + " - " + this.props.title}
+          <Link to={`/${this.props.owner}/${this.props.repo}/issue/${this.props.id}`}>{this.props.number + " - " + this.props.title}</Link>
         </h2>
         <h4>
           {this.props.labels.map(function(label, index) {
             return (
-              <span key={index}>{label.name}&nbsp;</span>
+              <span key={label.url}>{label.name}&nbsp;</span>
             )
           })}
         </h4>
@@ -23,13 +31,14 @@ var Issue = React.createClass({
   }
 });
 
-var IssueBox = React.createClass({
+var IssuesBox = React.createClass({
   handleRequestSubmit: function(obj) {
+    this.setState({page: 1});
     this.setState({owner: obj.owner});
     this.setState({repo: obj.repo});
 
     $.ajax({
-      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=25&state=all",
+      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=100",
       dataType: 'json',
       cache: false,
       success: function(data) {
@@ -49,7 +58,7 @@ var IssueBox = React.createClass({
   nextPage: function() {
     this.state.page++;
     $.ajax({
-      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25&state=all",
+      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=100",
       dataType: 'json',
       cache: false,
       success: function(data) {
@@ -63,7 +72,7 @@ var IssueBox = React.createClass({
   render: function() {
     if(this.state.owner && this.state.repo) {
       return (
-        <div className="issueBox">
+        <div className="issuesBox">
           <h1>Github Issues Explorer</h1>
           <h3>{this.state.owner + "/" + this.state.repo}</h3>
           <IssueForm onIssueSubmit={this.handleRequestSubmit} />
@@ -73,7 +82,7 @@ var IssueBox = React.createClass({
       );
     } else {
       return (
-        <div className="issueBox">
+        <div className="issuesBox">
           <h1>Github Issues Explorer</h1>
           <IssueForm onIssueSubmit={this.handleRequestSubmit} />
           <IssueList data={this.state.data} />
@@ -86,10 +95,16 @@ var IssueBox = React.createClass({
 var IssueList = React.createClass({
   render: function() {
     var issueNodes = this.props.data.map(function(issue) {
+      var re = /repos\/(\w+)\/(\w+)\/issues/;
+      var match = re.exec(issue.url);
+      console.log(match);
       return (
         <Issue
           key={issue.id}
-          number={issue.number} 
+          id={issue.id}
+          owner={match[1]}
+          repo={match[2]}
+          number={issue.number}
           title={issue.title} 
           labels={issue.labels} 
           username={issue.user.login} 
@@ -148,7 +163,20 @@ var IssueForm = React.createClass({
   }
 });
 
-ReactDOM.render(
-  <IssueBox/>,
-  document.getElementById('content')
+var IssueDetails = React.createClass({
+  render: function() {
+    return (
+      <div>{this.props.params.issueid}</div>
+    );
+  }
+});
+
+
+
+ReactDOM.render((
+    <Router history={history}>
+      <Route path="/" component={IssuesBox}/>
+      <Route path="/:owner/:repo/issue/:issueid" component={IssueDetails}/>
+    </Router>
+  ), document.getElementById('content')
 );
