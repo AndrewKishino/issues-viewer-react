@@ -8,8 +8,9 @@ var createHistory = require('history').createHashHistory;
 
 var Home = React.createClass({
   handleRequestSubmit: function(obj) {
-    var location = "/#/" + obj.owner + "/" + obj.repo + "/issues/"
-    document.location.href = location;
+    var location = "/" + obj.owner + "/" + obj.repo + "/issues/";
+    history.pushState(null, location);
+    // document.location.href = location;
     // this.setState({page: 1});
     // this.setState({owner: obj.owner});
     // this.setState({repo: obj.repo});
@@ -156,7 +157,7 @@ var Issue = React.createClass({
       <div className="issue">
         <img className="avatar" src={this.props.avatar}/>
         <h2 className="issueTitle">
-          <Link to={`/${this.props.owner}/${this.props.repo}/issues/${this.props.id}`}>{this.props.number + " - " + this.props.title}</Link>
+          <Link to={`/${this.props.owner}/${this.props.repo}/issues/${this.props.number}`}>{this.props.number + " - " + this.props.title}</Link>
         </h2>
         <h4>
           {this.props.labels.map(function(label, index) {
@@ -173,10 +174,91 @@ var Issue = React.createClass({
 });
 
 var IssueDetails = React.createClass({
+  getInitialState: function() {
+    return {data: [], owner: this.props.params.owner, repo: this.props.params.repo, labels: []};
+  },
+  loadIssueDetails: function() {
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid,
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({data: data, labels: data.labels, user: data.user});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+  loadIssueComments: function() {
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid + "/comments",
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({comments: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+  componentWillMount: function() {
+    this.loadIssueDetails();
+    this.loadIssueComments();
+  },
   render: function() {
-    return (
-      <div>{this.props.params.issueid}</div>
+    if(this.state.user && this.state.comments) {
+      return (
+        <div className="issue-box">
+          <div className="issue-details">
+            <h2>{this.state.data.title}</h2>
+            <img className="avatar" src={this.state.user.avatar_url}/><br/>
+            <h4>{this.state.data.user.login}</h4>
+            <span>{this.state.data.state}</span><br/>
+            <h4>
+              {this.state.labels.map(function(label, index) {
+                return (
+                  <span key={label.url}>{label.name}&nbsp;</span>
+                )
+              })}
+            </h4>
+            <span>{this.state.data.body}</span><br/>
+          </div>
+          <hr/>
+          <div className="issue-comments">
+            <h3>Comments</h3>
+            {this.state.comments.map(function(comment, index) {
+              return (
+                <div key={comment.id} className="comment">
+                  <img className="avatar" src={comment.user.avatar_url}/><br/>
+                  <h4>{comment.user.login}</h4>
+                  <span>{comment.body}</span><br/>
+                  <hr/>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      );
+    } else {
+      return (
+      <div className="issue-box">
+        <div className="issue-details">
+        <h2>{this.state.data.title}</h2>
+        <span>{this.state.data.state}</span><br/>
+        <h4>
+          {this.state.labels.map(function(label, index) {
+            return (
+              <span key={label.url}>{label.name}&nbsp;</span>
+            )
+          })}
+        </h4>
+        <span>{this.state.data.body}</span><br/>
+        </div>
+      </div>
     );
+    }
   }
 });
 

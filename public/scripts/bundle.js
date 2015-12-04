@@ -23932,8 +23932,9 @@ var Home = React.createClass({
   displayName: 'Home',
 
   handleRequestSubmit: function (obj) {
-    var location = "/#/" + obj.owner + "/" + obj.repo + "/issues/";
-    document.location.href = location;
+    var location = "/" + obj.owner + "/" + obj.repo + "/issues/";
+    history.pushState(null, location);
+    // document.location.href = location;
     // this.setState({page: 1});
     // this.setState({owner: obj.owner});
     // this.setState({repo: obj.repo});
@@ -24111,7 +24112,7 @@ var Issue = React.createClass({
         { className: 'issueTitle' },
         React.createElement(
           Link,
-          { to: `/${ this.props.owner }/${ this.props.repo }/issues/${ this.props.id }` },
+          { to: `/${ this.props.owner }/${ this.props.repo }/issues/${ this.props.number }` },
           this.props.number + " - " + this.props.title
         )
       ),
@@ -24140,12 +24141,154 @@ var Issue = React.createClass({
 var IssueDetails = React.createClass({
   displayName: 'IssueDetails',
 
+  getInitialState: function () {
+    return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, labels: [] };
+  },
+  loadIssueDetails: function () {
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid,
+      dataType: 'json',
+      cache: false,
+      success: (function (data) {
+        this.setState({ data: data, labels: data.labels, user: data.user });
+      }).bind(this),
+      error: (function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }).bind(this)
+    });
+  },
+  loadIssueComments: function () {
+    $.ajax({
+      url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid + "/comments",
+      dataType: 'json',
+      cache: false,
+      success: (function (data) {
+        this.setState({ comments: data });
+      }).bind(this),
+      error: (function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }).bind(this)
+    });
+  },
+  componentWillMount: function () {
+    this.loadIssueDetails();
+    this.loadIssueComments();
+  },
   render: function () {
-    return React.createElement(
-      'div',
-      null,
-      this.props.params.issueid
-    );
+    if (this.state.user && this.state.comments) {
+      return React.createElement(
+        'div',
+        { className: 'issue-box' },
+        React.createElement(
+          'div',
+          { className: 'issue-details' },
+          React.createElement(
+            'h2',
+            null,
+            this.state.data.title
+          ),
+          React.createElement('img', { className: 'avatar', src: this.state.user.avatar_url }),
+          React.createElement('br', null),
+          React.createElement(
+            'h4',
+            null,
+            this.state.data.user.login
+          ),
+          React.createElement(
+            'span',
+            null,
+            this.state.data.state
+          ),
+          React.createElement('br', null),
+          React.createElement(
+            'h4',
+            null,
+            this.state.labels.map(function (label, index) {
+              return React.createElement(
+                'span',
+                { key: label.url },
+                label.name,
+                ' '
+              );
+            })
+          ),
+          React.createElement(
+            'span',
+            null,
+            this.state.data.body
+          ),
+          React.createElement('br', null)
+        ),
+        React.createElement('hr', null),
+        React.createElement(
+          'div',
+          { className: 'issue-comments' },
+          React.createElement(
+            'h3',
+            null,
+            'Comments'
+          ),
+          this.state.comments.map(function (comment, index) {
+            return React.createElement(
+              'div',
+              { key: comment.id, className: 'comment' },
+              React.createElement('img', { className: 'avatar', src: comment.user.avatar_url }),
+              React.createElement('br', null),
+              React.createElement(
+                'h4',
+                null,
+                comment.user.login
+              ),
+              React.createElement(
+                'span',
+                null,
+                comment.body
+              ),
+              React.createElement('br', null),
+              React.createElement('hr', null)
+            );
+          })
+        )
+      );
+    } else {
+      return React.createElement(
+        'div',
+        { className: 'issue-box' },
+        React.createElement(
+          'div',
+          { className: 'issue-details' },
+          React.createElement(
+            'h2',
+            null,
+            this.state.data.title
+          ),
+          React.createElement(
+            'span',
+            null,
+            this.state.data.state
+          ),
+          React.createElement('br', null),
+          React.createElement(
+            'h4',
+            null,
+            this.state.labels.map(function (label, index) {
+              return React.createElement(
+                'span',
+                { key: label.url },
+                label.name,
+                ' '
+              );
+            })
+          ),
+          React.createElement(
+            'span',
+            null,
+            this.state.data.body
+          ),
+          React.createElement('br', null)
+        )
+      );
+    }
   }
 });
 
