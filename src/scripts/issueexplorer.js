@@ -5,15 +5,14 @@ var Route = require('react-router').Route;
 var Link = require('react-router').Link;
 var Redirect = require('react-router').Redirect;
 var createHistory = require('history').createHashHistory;
+var request = require('request');
+var ReactPaginate = require('react-paginate');
+var moment = require('moment');
 
 var Home = React.createClass({
   handleRequestSubmit: function(obj) {
     var location = "/" + obj.owner + "/" + obj.repo + "/issues/";
     history.pushState(null, location);
-    // document.location.href = location;
-    // this.setState({page: 1});
-    // this.setState({owner: obj.owner});
-    // this.setState({repo: obj.repo});
   },
   getInitialState: function() {
     return {owner: '', repo: ''};
@@ -74,50 +73,48 @@ var SearchForm = React.createClass({
 });
 
 var IssuesBox = React.createClass({
-  handleRequestSubmit: function(obj) {
-    this.setState({page: 1});
-    this.setState({owner: obj.owner});
-    this.setState({repo: obj.repo});
-
-    $.ajax({
-      url: "https://api.github.com/repos/" + obj.owner + "/" + obj.repo + "/issues?page=" + this.state.page + "&per_page=25",
-      dataType: 'json',
-      cache: false,
-      success: function(data) {
-        this.setState({data: data});
-      }.bind(this),
-      error: function(xhr, status, err) {
-        console.error(this.props.url, status, err.toString());
-      }.bind(this)
-    });
+  handlePageClick: function (data) {
+    this.setState({ page: data.selected+1}, (function () {
+      this.loadIssuesFromServer();
+      document.body.scrollTop = document.documentElement.scrollTop = 0;
+    }).bind(this));
   },
   getInitialState: function() {
-    return {data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 0};
+    return {data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 1};
   },
   componentDidMount: function() {
     this.loadIssuesFromServer();
   },
   loadIssuesFromServer: function() {
-    this.state.page++;
-    $.ajax({
-      url: "https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25",
-      dataType: 'json',
-      cache: false,
-      success: function(data) {
-        this.setState({data: this.state.data.concat(data)});
-      }.bind(this),
-      error: function(xhr, status, err) {
-        console.error(this.props.url, status, err.toString());
-      }.bind(this)
-    });
+    request.get("https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25", function(err, data) {
+      var matches;
+      var pages = [];
+      var re = /\?page=(\d+)/g;
+      while ((matches = re.exec(data.headers.link)) != null) {
+        pages.push(Number(matches[1]));
+      }
+      this.setState({data: JSON.parse(data.body), pageNum: pages[1]-1, nextPage: pages[0]});
+    }.bind(this));
   },
   render: function() {
     return (
       <div className="issuesBox">
         <Link to="/"><h1>Github Issues Explorer</h1></Link>
         <h3>{this.props.params.owner + "/" + this.props.params.repo}</h3>
+        <hr/>
         <IssueList data={this.state.data} />
-        <button onClick={this.loadIssuesFromServer} className="next-page-btn">Load More</button>
+        <div className="pagination-box">
+          <ReactPaginate previousLabel={"Previous"}
+                       nextLabel={"Next"}
+                       breakLabel={<li className="break"><span>...</span></li>}
+                       pageNum={this.state.pageNum}
+                       marginPagesDisplayed={2}
+                       pageRangeDisplayed={5}
+                       containerClassName={"pagination"}
+                       subContainerClassName={"pages pagination"}
+                       clickCallback={this.handlePageClick}
+                       activeClassName={"active-page"}/>
+       </div>
       </div>
     );
   }
@@ -140,7 +137,7 @@ var IssueList = React.createClass({
           username={issue.user.login} 
           avatar={issue.user.avatar_url}
           summary={issue.body}
-        />
+          created={issue.created_at}/>
       );
     });
     return (
@@ -156,16 +153,20 @@ var Issue = React.createClass({
     return (
       <div className="issue">
         <img className="avatar" src={this.props.avatar}/>
-        <h2 className="issueTitle">
-          <Link to={`/${this.props.owner}/${this.props.repo}/issues/${this.props.number}`}>{this.props.number + " - " + this.props.title}</Link>
-        </h2>
-        <h4>
-          {this.props.labels.map(function(label, index) {
-            return (
-              <span key={label.url}>{label.name}&nbsp;</span>
-            )
-          })}
-        </h4>
+        <div className="issues-title">
+          <strong><Link to={`/${this.props.owner}/${this.props.repo}/issues/${this.props.number}`}>{this.props.title}</Link></strong>
+        </div>
+        {this.props.labels.map(function(label, index) {
+          var style = {
+            backgroundColor: '#' + label.color
+          }
+          return (
+            <span key={label.url} className="label label-default issues-label" style={style}>{label.name}</span>
+          )
+        })}
+        <div className="issues-meta">
+          #{this.props.number} opened {moment(this.props.created).fromNow()} by {this.props.username}
+        </div>
         <span>{this.props.summary.substring(0,140) + "..."}</span>
         <hr/>
       </div>
