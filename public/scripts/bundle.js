@@ -87217,6 +87217,7 @@ var Home = React.createClass({
   },
   componentDidMount: function () {},
   render: function () {
+    localStorage.removeItem('GithubViewerData');
     return React.createElement(
       'div',
       { className: 'home' },
@@ -87279,6 +87280,7 @@ var IssuesBox = React.createClass({
 
   handlePageClick: function (data) {
     this.setState({ page: data.selected + 1 }, (function () {
+      localStorage.removeItem('GithubViewerData');
       this.loadIssuesFromServer();
       document.body.scrollTop = document.documentElement.scrollTop = 0;
     }).bind(this));
@@ -87290,15 +87292,30 @@ var IssuesBox = React.createClass({
     this.loadIssuesFromServer();
   },
   loadIssuesFromServer: function () {
-    request.get("https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25", (function (err, data) {
+    if (localStorage.length) {
+      var localData = localStorage.getItem('GithubViewerData');
+      localData = JSON.parse(localData);
+      console.dir(localData);
       var matches;
       var pages = [];
       var re = /\?page=(\d+)/g;
-      while ((matches = re.exec(data.headers.link)) != null) {
+      while ((matches = re.exec(localData.headers.link)) != null) {
         pages.push(Number(matches[1]));
       }
-      this.setState({ data: JSON.parse(data.body), pageNum: pages[1] - 1, nextPage: pages[0] });
-    }).bind(this));
+      this.setState({ data: JSON.parse(localData.body), pageNum: pages[1] - 1, nextPage: pages[0] });
+      localStorage.setItem('GithubViewerData', JSON.stringify(localData));
+    } else {
+      request.get("https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25", (function (err, data) {
+        var matches;
+        var pages = [];
+        var re = /\?page=(\d+)/g;
+        while ((matches = re.exec(data.headers.link)) != null) {
+          pages.push(Number(matches[1]));
+        }
+        this.setState({ data: JSON.parse(data.body), pageNum: pages[1] - 1, nextPage: pages[0] });
+        localStorage.setItem('GithubViewerData', JSON.stringify(data));
+      }).bind(this));
+    }
   },
   render: function () {
     return React.createElement(
