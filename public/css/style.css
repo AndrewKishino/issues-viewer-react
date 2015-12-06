@@ -8,6 +8,11 @@
   display: block;
 }
 
+.issue-num {
+  font-weight: 300;
+  color: #aaa;
+}
+
 .avatar {
   width: 50px;
   border-radius: 3px;
@@ -29,6 +34,15 @@
 
 .issues-meta {
   font-size: 12px;
+  color: #777;
+}
+
+.issues-comments {
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+.no-comments {
   color: #777;
 }
 

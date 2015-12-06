@@ -18,7 +18,6 @@ var Home = React.createClass({
     return {owner: '', repo: ''};
   },
   componentDidMount: function() {
-    // this.loadIssuesFromServer();
   },
   render: function() {
     return (
@@ -137,7 +136,8 @@ var IssueList = React.createClass({
           username={issue.user.login} 
           avatar={issue.user.avatar_url}
           summary={issue.body}
-          created={issue.created_at}/>
+          created={issue.created_at}
+          comments={issue.comments}/>
       );
     });
     return (
@@ -149,7 +149,22 @@ var IssueList = React.createClass({
 });
 
 var Issue = React.createClass({
+  rawMarkup: function() {
+    var rawMarkup = marked(this.props.summary.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), {sanitize: true});
+    return { __html: rawMarkup };
+  },
+
+  strip: function(html) {
+    var tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText;
+  },
+
   render: function() {
+    var trimmedString = this.strip(this.rawMarkup().__html).substr(0, 140);
+    trimmedString = trimmedString.substr(0, Math.min(trimmedString.length, trimmedString.lastIndexOf(" ")));
+    trimmedString = { __html: trimmedString };
+
     return (
       <div className="issue">
         <img className="avatar" src={this.props.avatar}/>
@@ -167,7 +182,10 @@ var Issue = React.createClass({
         <div className="issues-meta">
           #{this.props.number} opened {moment(this.props.created).fromNow()} by {this.props.username}
         </div>
-        <span>{this.props.summary.substring(0,140) + "..."}</span>
+        <div className="issues-comments">
+          <span>{this.props.comments} comments </span><span className="octicon octicon-comment"></span>
+        </div>
+        <span dangerouslySetInnerHTML={trimmedString}></span>
         <hr/>
       </div>
     );
@@ -178,6 +196,7 @@ var IssueDetails = React.createClass({
   getInitialState: function() {
     return {data: [], owner: this.props.params.owner, repo: this.props.params.repo, labels: []};
   },
+
   loadIssueDetails: function() {
     $.ajax({
       url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid,
@@ -191,6 +210,7 @@ var IssueDetails = React.createClass({
       }.bind(this)
     });
   },
+
   loadIssueComments: function() {
     $.ajax({
       url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid + "/comments",
@@ -204,16 +224,23 @@ var IssueDetails = React.createClass({
       }.bind(this)
     });
   },
+
   componentWillMount: function() {
     this.loadIssueDetails();
     this.loadIssueComments();
   },
+
+  rawMarkup: function(markup) {
+    var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), {sanitize: true});
+    return { __html: rawMarkup };
+  },
+
   render: function() {
     if(this.state.user && this.state.comments) {
       return (
         <div className="issue-box">
           <div className="issue-details">
-            <h2>{this.state.data.title}</h2>
+            <h2>{this.state.data.title} <font className="issue-num">#{this.state.data.number}</font></h2>
             <img className="avatar" src={this.state.user.avatar_url}/><br/>
             <h4>{this.state.data.user.login}</h4>
             <span>{this.state.data.state}</span><br/>
@@ -224,7 +251,7 @@ var IssueDetails = React.createClass({
                 )
               })}
             </h4>
-            <span>{this.state.data.body}</span><br/>
+            <span dangerouslySetInnerHTML={this.rawMarkup(this.state.data.body)}/><br/>
           </div>
           <hr/>
           <div className="issue-comments">
@@ -234,11 +261,11 @@ var IssueDetails = React.createClass({
                 <div key={comment.id} className="comment">
                   <img className="avatar" src={comment.user.avatar_url}/><br/>
                   <h4>{comment.user.login}</h4>
-                  <span>{comment.body}</span><br/>
+                  <span dangerouslySetInnerHTML={this.rawMarkup(comment.body)}/><br/>
                   <hr/>
                 </div>
               )
-            })}
+            }.bind(this))}
           </div>
         </div>
       );

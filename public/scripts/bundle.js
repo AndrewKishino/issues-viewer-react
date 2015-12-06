@@ -87215,9 +87215,7 @@ var Home = React.createClass({
   getInitialState: function () {
     return { owner: '', repo: '' };
   },
-  componentDidMount: function () {
-    // this.loadIssuesFromServer();
-  },
+  componentDidMount: function () {},
   render: function () {
     return React.createElement(
       'div',
@@ -87366,7 +87364,8 @@ var IssueList = React.createClass({
         username: issue.user.login,
         avatar: issue.user.avatar_url,
         summary: issue.body,
-        created: issue.created_at });
+        created: issue.created_at,
+        comments: issue.comments });
     });
     return React.createElement(
       'div',
@@ -87379,7 +87378,22 @@ var IssueList = React.createClass({
 var Issue = React.createClass({
   displayName: 'Issue',
 
+  rawMarkup: function () {
+    var rawMarkup = marked(this.props.summary.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
+    return { __html: rawMarkup };
+  },
+
+  strip: function (html) {
+    var tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText;
+  },
+
   render: function () {
+    var trimmedString = this.strip(this.rawMarkup().__html).substr(0, 140);
+    trimmedString = trimmedString.substr(0, Math.min(trimmedString.length, trimmedString.lastIndexOf(" ")));
+    trimmedString = { __html: trimmedString };
+
     return React.createElement(
       'div',
       { className: 'issue' },
@@ -87418,10 +87432,17 @@ var Issue = React.createClass({
         this.props.username
       ),
       React.createElement(
-        'span',
-        null,
-        this.props.summary.substring(0, 140) + "..."
+        'div',
+        { className: 'issues-comments' },
+        React.createElement(
+          'span',
+          null,
+          this.props.comments,
+          ' comments '
+        ),
+        React.createElement('span', { className: 'octicon octicon-comment' })
       ),
+      React.createElement('span', { dangerouslySetInnerHTML: trimmedString }),
       React.createElement('hr', null)
     );
   }
@@ -87433,6 +87454,7 @@ var IssueDetails = React.createClass({
   getInitialState: function () {
     return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, labels: [] };
   },
+
   loadIssueDetails: function () {
     $.ajax({
       url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid,
@@ -87446,6 +87468,7 @@ var IssueDetails = React.createClass({
       }).bind(this)
     });
   },
+
   loadIssueComments: function () {
     $.ajax({
       url: "https://api.github.com/repos/" + this.props.params.owner + "/" + this.props.params.repo + "/issues/" + this.props.params.issueid + "/comments",
@@ -87459,10 +87482,17 @@ var IssueDetails = React.createClass({
       }).bind(this)
     });
   },
+
   componentWillMount: function () {
     this.loadIssueDetails();
     this.loadIssueComments();
   },
+
+  rawMarkup: function (markup) {
+    var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
+    return { __html: rawMarkup };
+  },
+
   render: function () {
     if (this.state.user && this.state.comments) {
       return React.createElement(
@@ -87474,7 +87504,14 @@ var IssueDetails = React.createClass({
           React.createElement(
             'h2',
             null,
-            this.state.data.title
+            this.state.data.title,
+            ' ',
+            React.createElement(
+              'font',
+              { className: 'issue-num' },
+              '#',
+              this.state.data.number
+            )
           ),
           React.createElement('img', { className: 'avatar', src: this.state.user.avatar_url }),
           React.createElement('br', null),
@@ -87501,11 +87538,7 @@ var IssueDetails = React.createClass({
               );
             })
           ),
-          React.createElement(
-            'span',
-            null,
-            this.state.data.body
-          ),
+          React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(this.state.data.body) }),
           React.createElement('br', null)
         ),
         React.createElement('hr', null),
@@ -87517,7 +87550,7 @@ var IssueDetails = React.createClass({
             null,
             'Comments'
           ),
-          this.state.comments.map(function (comment, index) {
+          this.state.comments.map((function (comment, index) {
             return React.createElement(
               'div',
               { key: comment.id, className: 'comment' },
@@ -87528,15 +87561,11 @@ var IssueDetails = React.createClass({
                 null,
                 comment.user.login
               ),
-              React.createElement(
-                'span',
-                null,
-                comment.body
-              ),
+              React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(comment.body) }),
               React.createElement('br', null),
               React.createElement('hr', null)
             );
-          })
+          }).bind(this))
         )
       );
     } else {
