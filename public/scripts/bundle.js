@@ -87199,7 +87199,6 @@ var ReactDOM = require('react-dom');
 var Router = require('react-router').Router;
 var Route = require('react-router').Route;
 var Link = require('react-router').Link;
-var Redirect = require('react-router').Redirect;
 var createHistory = require('history').createHashHistory;
 var request = require('request');
 var ReactPaginate = require('react-paginate');
@@ -87217,14 +87216,18 @@ var Home = React.createClass({
   },
   componentDidMount: function () {},
   render: function () {
-    localStorage.removeItem('GithubViewerData');
+    localStorage.clear();
     return React.createElement(
       'div',
       { className: 'home' },
       React.createElement(
-        'h1',
-        null,
-        'Github Issues Explorer'
+        'div',
+        { className: 'home-title' },
+        React.createElement(
+          'h1',
+          null,
+          'Github Issues Explorer'
+        )
       ),
       React.createElement(SearchForm, { onIssueSubmit: this.handleRequestSubmit })
     );
@@ -87257,6 +87260,7 @@ var SearchForm = React.createClass({
       'form',
       { className: 'searchForm', onSubmit: this.handleSubmit },
       React.createElement('input', {
+        className: 'searchField',
         type: 'text',
         id: 'owner',
         placeholder: 'Owner',
@@ -87264,13 +87268,14 @@ var SearchForm = React.createClass({
         onChange: this.handleOwnerChange
       }),
       React.createElement('input', {
+        className: 'searchField',
         type: 'text',
         id: 'repo',
         placeholder: 'Repository',
         value: this.props.repo,
         onChange: this.handleRepoChange
       }),
-      React.createElement('input', { type: 'submit', value: 'Post' })
+      React.createElement('input', { className: 'searchField', type: 'submit', value: 'Search' })
     );
   }
 });
@@ -87280,40 +87285,72 @@ var IssuesBox = React.createClass({
 
   handlePageClick: function (data) {
     this.setState({ page: data.selected + 1 }, (function () {
-      localStorage.removeItem('GithubViewerData');
-      this.loadIssuesFromServer();
+      this.setState({ data: [] });
+      localStorage.removeItem(this.state.owner + this.state.repo + 'GithubViewerData');
+      if (localStorage.getItem('state')) {
+        this.loadIssuesFromServer(localStorage.getItem('state'));
+      } else {
+        this.loadIssuesFromServer('open');
+      }
+      document.body.scrollTop = document.documentElement.scrollTop = 0;
+    }).bind(this));
+  },
+  switchClick: function (e) {
+    this.setState({ page: 1 }, (function () {
+      this.setState({ data: [] });
+      localStorage.removeItem(this.state.owner + this.state.repo + 'GithubViewerData');
+      if (e === true) {
+        localStorage.setItem('checked', 'checked');
+        localStorage.setItem('state', 'closed');
+        this.setState({ state: 'closed' }, function () {
+          this.loadIssuesFromServer('closed');
+        });
+      } else {
+        localStorage.setItem('checked', '');
+        localStorage.setItem('state', 'open');
+        this.setState({ state: 'open' }, function () {
+          this.loadIssuesFromServer('open');
+        });
+      }
       document.body.scrollTop = document.documentElement.scrollTop = 0;
     }).bind(this));
   },
   getInitialState: function () {
-    return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 1 };
+    if (!!localStorage.getItem('state')) {
+      return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 1, state: localStorage.getItem('state') };
+    } else {
+      return { data: [], owner: this.props.params.owner, repo: this.props.params.repo, page: 1, state: 'open' };
+    }
   },
   componentDidMount: function () {
-    this.loadIssuesFromServer();
+    if (localStorage.getItem('state')) {
+      this.loadIssuesFromServer(localStorage.getItem('state'));
+    } else {
+      this.loadIssuesFromServer('open');
+    }
   },
-  loadIssuesFromServer: function () {
-    if (localStorage.length) {
-      var localData = localStorage.getItem('GithubViewerData');
+  loadIssuesFromServer: function (state) {
+    if (localStorage.getItem(this.props.params.owner + this.props.params.repo + 'GithubViewerData')) {
+      var localData = localStorage.getItem(this.state.owner + this.state.repo + 'GithubViewerData');
       localData = JSON.parse(localData);
-      console.dir(localData);
       var matches;
       var pages = [];
-      var re = /\?page=(\d+)/g;
+      var re = /\&page=(\d+)/g;
       while ((matches = re.exec(localData.headers.link)) != null) {
         pages.push(Number(matches[1]));
       }
-      this.setState({ data: JSON.parse(localData.body), pageNum: pages[1] - 1, nextPage: pages[0] });
-      localStorage.setItem('GithubViewerData', JSON.stringify(localData));
+      this.setState({ data: JSON.parse(localData.body), pageNum: pages[1] - 1, nextPage: pages[0], state: localStorage.getItem('state') });
     } else {
-      request.get("https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?page=" + this.state.page + "&per_page=25", (function (err, data) {
+      localStorage.removeItem(this.state.owner + this.state.repo + 'GithubViewerData');
+      request.get("https://api.github.com/repos/" + this.state.owner + "/" + this.state.repo + "/issues?state=" + state + "&page=" + this.state.page + "&per_page=25", (function (err, data) {
         var matches;
         var pages = [];
-        var re = /\?page=(\d+)/g;
+        var re = /\&page=(\d+)/g;
         while ((matches = re.exec(data.headers.link)) != null) {
           pages.push(Number(matches[1]));
         }
         this.setState({ data: JSON.parse(data.body), pageNum: pages[1] - 1, nextPage: pages[0] });
-        localStorage.setItem('GithubViewerData', JSON.stringify(data));
+        localStorage.setItem(this.state.owner + this.state.repo + 'GithubViewerData', JSON.stringify(data));
       }).bind(this));
     }
   },
@@ -87330,13 +87367,8 @@ var IssuesBox = React.createClass({
           'Github Issues Explorer'
         )
       ),
-      React.createElement(
-        'h3',
-        null,
-        this.props.params.owner + "/" + this.props.params.repo
-      ),
       React.createElement('hr', null),
-      React.createElement(IssueList, { data: this.state.data }),
+      React.createElement(IssueList, { switchClick: this.switchClick, owner: this.props.params.owner, repo: this.props.params.repo, data: this.state.data }),
       React.createElement(
         'div',
         { className: 'pagination-box' },
@@ -87366,28 +87398,70 @@ var IssuesBox = React.createClass({
 var IssueList = React.createClass({
   displayName: 'IssueList',
 
+  switchClick: function (e) {
+    this.props.switchClick(e.target.checked);
+  },
   render: function () {
     var issueNodes = this.props.data.map(function (issue) {
       var re = /repos\/(.+)\/(.+)\/issues/;
       var match = re.exec(issue.url);
-      return React.createElement(Issue, {
-        key: issue.id,
-        id: issue.id,
-        owner: match[1],
-        repo: match[2],
-        number: issue.number,
-        title: issue.title,
-        labels: issue.labels,
-        username: issue.user.login,
-        avatar: issue.user.avatar_url,
-        summary: issue.body,
-        created: issue.created_at,
-        comments: issue.comments });
+      return React.createElement(
+        'div',
+        { key: issue.id, className: 'list-group-item' },
+        React.createElement(Issue, {
+          id: issue.id,
+          owner: match[1],
+          repo: match[2],
+          number: issue.number,
+          title: issue.title,
+          labels: issue.labels,
+          username: issue.user.login,
+          avatar: issue.user.avatar_url,
+          summary: issue.body,
+          created: issue.created_at,
+          comments: issue.comments,
+          state: issue.state })
+      );
     });
+
     return React.createElement(
       'div',
       { className: 'issueList' },
-      issueNodes
+      React.createElement(
+        'div',
+        { className: 'panel panel-default' },
+        React.createElement(
+          'div',
+          { className: 'panel-heading location-heading' },
+          React.createElement(
+            'span',
+            null,
+            this.props.owner,
+            ' / ',
+            this.props.repo
+          ),
+          React.createElement(
+            'div',
+            { className: 'switch' },
+            React.createElement('input', { id: 'toggle-1',
+              className: 'toggle toggle-round',
+              type: 'checkbox',
+              defaultChecked: localStorage.getItem('checked'),
+              onChange: this.switchClick }),
+            React.createElement('label', { htmlFor: 'toggle-1' })
+          ),
+          React.createElement(
+            'span',
+            { className: 'switch-label' },
+            'Show closed'
+          )
+        ),
+        React.createElement(
+          'div',
+          { className: 'list-group' },
+          issueNodes
+        )
+      )
     );
   }
 });
@@ -87396,8 +87470,12 @@ var Issue = React.createClass({
   displayName: 'Issue',
 
   rawMarkup: function () {
-    var rawMarkup = marked(this.props.summary.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
-    return { __html: rawMarkup };
+    if (this.props.summary) {
+      var rawMarkup = marked(this.props.summary.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
+      return { __html: rawMarkup };
+    } else {
+      return { __html: '' };
+    }
   },
 
   strip: function (html) {
@@ -87410,11 +87488,15 @@ var Issue = React.createClass({
     var trimmedString = this.strip(this.rawMarkup().__html).substr(0, 140);
     trimmedString = trimmedString.substr(0, Math.min(trimmedString.length, trimmedString.lastIndexOf(" ")));
     trimmedString = { __html: trimmedString };
+    var opened = { __html: "<span class='octicon octicon-issue-opened open-state'></span>" };
+    var closed = { __html: "<span class='octicon octicon-issue-closed closed-state'></span>" };
+    var state = this.props.state === 'open' ? opened : closed;
 
     return React.createElement(
       'div',
       { className: 'issue' },
       React.createElement('img', { className: 'avatar', src: this.props.avatar }),
+      React.createElement('span', { dangerouslySetInnerHTML: state }),
       React.createElement(
         'div',
         { className: 'issues-title' },
@@ -87459,8 +87541,7 @@ var Issue = React.createClass({
         ),
         React.createElement('span', { className: 'octicon octicon-comment' })
       ),
-      React.createElement('span', { dangerouslySetInnerHTML: trimmedString }),
-      React.createElement('hr', null)
+      React.createElement('span', { className: 'issues-summary', dangerouslySetInnerHTML: trimmedString })
     );
   }
 });
@@ -87511,6 +87592,10 @@ var IssueDetails = React.createClass({
   },
 
   render: function () {
+    var opened = { __html: "<span class='label label-default issue-label issue-label-open'><span class='octicon octicon-issue-opened'></span> " + this.state.data.state + "</span>" };
+    var closed = { __html: "<span class='label label-default issue-label issue-label-closed'><span class='octicon octicon-issue-closed'></span> " + this.state.data.state + "</span>" };
+    var state = this.state.data.state === 'open' ? opened : closed;
+
     if (this.state.user && this.state.comments) {
       return React.createElement(
         'div',
@@ -87519,67 +87604,104 @@ var IssueDetails = React.createClass({
           'div',
           { className: 'issue-details' },
           React.createElement(
-            'h2',
-            null,
-            this.state.data.title,
-            ' ',
+            'div',
+            { className: 'issue-title' },
             React.createElement(
-              'font',
-              { className: 'issue-num' },
-              '#',
-              this.state.data.number
-            )
-          ),
-          React.createElement('img', { className: 'avatar', src: this.state.user.avatar_url }),
-          React.createElement('br', null),
-          React.createElement(
-            'h4',
-            null,
-            this.state.data.user.login
-          ),
-          React.createElement(
-            'span',
-            null,
-            this.state.data.state
-          ),
-          React.createElement('br', null),
-          React.createElement(
-            'h4',
-            null,
-            this.state.labels.map(function (label, index) {
+              'span',
+              null,
+              this.state.data.title,
+              ' ',
+              React.createElement(
+                'font',
+                { className: 'issue-num' },
+                '#',
+                this.state.data.number
+              )
+            ),
+            this.state.data.labels.map(function (label, index) {
+              var style = {
+                backgroundColor: '#' + label.color
+              };
               return React.createElement(
                 'span',
-                { key: label.url },
-                label.name,
-                ' '
+                { key: label.url, className: 'label label-default issue-label-title', style: style },
+                label.name
               );
             })
           ),
-          React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(this.state.data.body) }),
-          React.createElement('br', null)
+          React.createElement(
+            'div',
+            { className: 'issue-meta' },
+            React.createElement('span', { dangerouslySetInnerHTML: state }),
+            React.createElement(
+              'span',
+              null,
+              React.createElement(
+                'strong',
+                null,
+                this.state.data.user.login
+              ),
+              ' opened this issue ',
+              moment(this.state.data.created_at).fromNow(),
+              ' - ',
+              this.state.data.comments,
+              ' comments'
+            )
+          ),
+          React.createElement('hr', null),
+          React.createElement('img', { className: 'issue-avatar', src: this.state.data.user.avatar_url }),
+          React.createElement(
+            'div',
+            { className: 'panel panel-default issue-panel' },
+            React.createElement(
+              'div',
+              { className: 'panel-heading' },
+              React.createElement(
+                'strong',
+                null,
+                this.state.data.user.login
+              ),
+              ' commented  ',
+              moment(this.state.data.created_at).fromNow()
+            ),
+            React.createElement(
+              'div',
+              { className: 'panel-body' },
+              React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(this.state.data.body) }),
+              React.createElement('br', null)
+            )
+          )
         ),
         React.createElement('hr', null),
         React.createElement(
           'div',
           { className: 'issue-comments' },
-          React.createElement(
-            'h3',
-            null,
-            'Comments'
-          ),
           this.state.comments.map((function (comment, index) {
             return React.createElement(
               'div',
               { key: comment.id, className: 'comment' },
-              React.createElement('img', { className: 'avatar', src: comment.user.avatar_url }),
-              React.createElement('br', null),
+              React.createElement('img', { className: 'issue-avatar', src: comment.user.avatar_url }),
               React.createElement(
-                'h4',
-                null,
-                comment.user.login
+                'div',
+                { className: 'panel panel-default issue-panel' },
+                React.createElement(
+                  'div',
+                  { className: 'panel-heading' },
+                  React.createElement(
+                    'strong',
+                    null,
+                    this.state.data.user.login
+                  ),
+                  ' commented  ',
+                  moment(comment.created_at).fromNow()
+                ),
+                React.createElement(
+                  'div',
+                  { className: 'panel-body' },
+                  React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(comment.body) }),
+                  React.createElement('br', null)
+                )
               ),
-              React.createElement('span', { dangerouslySetInnerHTML: this.rawMarkup(comment.body) }),
-              React.createElement('br', null),
               React.createElement('hr', null)
             );
           }).bind(this))

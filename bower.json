@@ -1,0 +1,23 @@
+{
+  "name": "github-issue-viewer",
+  "description": "View Github issues. Built using React.",
+  "main": "server.js",
+  "authors": [
+    "Andrew Kishino"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "issues",
+    "viewer"
+  ],
+  "homepage": "https://github.com/AndrewKishino/issues-viewer-react",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

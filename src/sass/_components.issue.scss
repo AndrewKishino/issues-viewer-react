@@ -1,3 +1,8 @@
+.issue-avatar {
+  width: 50px;
+  border-radius: 3px;
+}
+
 .issue-box {
 
 }
@@ -8,6 +13,38 @@
 
 .issue-details {
 
+}
+.issue-panel {
+  margin: -50px 0 0 65px;
+}
+
+.issue-meta {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #656565;
+}
+
+.issue-label {
+  margin-right: 15px;
+  font-size: 16px;
+}
+
+.issue-label-title {
+  margin: 0 5px;
+  font-size: 12px;
+}
+
+.issue-label-open {
+  background-color: green;
+}
+
+.issue-label-closed {
+  background-color: red;
+}
+
+.issue-title {
+  font-size: 30px;
+  font-weight: 500;
 }
 
 .issue-num {

@@ -27,6 +27,20 @@
   margin-bottom: 20px;
 }
 
+.issues-summary {
+
+}
+
+.open-state {
+  color: green;
+  margin: 0 5px 0 0;
+}
+
+.closed-state {
+  color: red;
+  margin: 0 5px 0 0;
+}
+
 .no-comments {
   color: #777;
 }
@@ -38,6 +52,11 @@
 .pagination-box {
   display: table;
   margin: 0 auto;
+}
+
+.location-heading {
+  font-weight: bold;
+  font-size: 25px;
 }
 
 .pagination ul {
@@ -52,4 +71,101 @@
 
 .pagination .break a {
   cursor: default;
+}
+
+/* ============================================================
+  SWITCH
+============================================================ */
+
+.switch {
+  float: right;
+}
+
+.switch-label {
+  font-weight: 300;
+  float: right;
+  font-size: 14px;
+  margin: 8px 5px;
+}
+
+.toggle {
+  position: absolute;
+  margin-left: -9999px;
+  visibility: hidden;
+}
+.toggle + label {
+  display: block;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input.toggle-round + label {
+  margin-top: 5px;
+  padding: 2px;
+  width: 40px;
+  height: 25px;
+  background-color: #dddddd;
+  -webkit-border-radius: 60px;
+  -moz-border-radius: 60px;
+  -ms-border-radius: 60px;
+  -o-border-radius: 60px;
+  border-radius: 60px;
+}
+input.toggle-round + label:before, input.toggle-round + label:after {
+  display: block;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  bottom: 1px;
+  content: "";
+}
+input.toggle-round + label:before {
+  right: 1px;
+  background-color: #f1f1f1;
+  -webkit-border-radius: 60px;
+  -moz-border-radius: 60px;
+  -ms-border-radius: 60px;
+  -o-border-radius: 60px;
+  border-radius: 60px;
+  -webkit-transition: background 0.4s;
+  -moz-transition: background 0.4s;
+  -o-transition: background 0.4s;
+  transition: background 0.4s;
+}
+input.toggle-round + label:after {
+  width: 25px;
+  background-color: #fff;
+  -webkit-border-radius: 100%;
+  -moz-border-radius: 100%;
+  -ms-border-radius: 100%;
+  -o-border-radius: 100%;
+  border-radius: 100%;
+  -webkit-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  -webkit-transition: margin 0.4s;
+  -moz-transition: margin 0.4s;
+  -o-transition: margin 0.4s;
+  transition: margin 0.4s;
+}
+input.toggle-round:checked + label:before {
+  background-color: #ff5656;
+}
+input.toggle-round:checked + label:after {
+  margin-left: 14px;
+}
+
+@media screen and (max-width: 500px) {
+  .issues-summary {
+    display: none;
+  }
+
+  .issues-comments {
+    margin-bottom: 0px;
+  }
 }

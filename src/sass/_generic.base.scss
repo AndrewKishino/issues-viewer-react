@@ -3,3 +3,12 @@
   margin: 0 auto;
   padding: 20px;
 }
+
+@media screen and (max-width: 500px) {
+  #content {
+    max-width: 100%;
+    min-width: 350px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+}

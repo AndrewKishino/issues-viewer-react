@@ -8,6 +8,7 @@ The server implementation serves static files from `public/` and handles request
 
 ```sh
 npm install
+bower install
 node server.js
 ```
 
