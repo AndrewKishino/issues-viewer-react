@@ -87219,7 +87219,7 @@ var Home = React.createClass({
     localStorage.clear();
     return React.createElement(
       'div',
-      { className: 'home' },
+      { className: 'home col-lg-12' },
       React.createElement(
         'div',
         { className: 'home-title' },
@@ -87258,24 +87258,44 @@ var SearchForm = React.createClass({
   render: function () {
     return React.createElement(
       'form',
-      { className: 'searchForm', onSubmit: this.handleSubmit },
-      React.createElement('input', {
-        className: 'searchField',
-        type: 'text',
-        id: 'owner',
-        placeholder: 'Owner',
-        value: this.props.owner,
-        onChange: this.handleOwnerChange
-      }),
-      React.createElement('input', {
-        className: 'searchField',
-        type: 'text',
-        id: 'repo',
-        placeholder: 'Repository',
-        value: this.props.repo,
-        onChange: this.handleRepoChange
-      }),
-      React.createElement('input', { className: 'searchField', type: 'submit', value: 'Search' })
+      { className: 'searchForm col-lg-6', onSubmit: this.handleSubmit },
+      React.createElement(
+        'div',
+        { className: 'row' },
+        React.createElement(
+          'div',
+          { className: 'col-lg-5' },
+          React.createElement('input', {
+            className: 'searchField form-control',
+            type: 'text',
+            id: 'owner',
+            placeholder: 'Owner',
+            value: this.props.owner,
+            onChange: this.handleOwnerChange
+          })
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-lg-5' },
+          React.createElement('input', {
+            className: 'searchField form-control',
+            type: 'text',
+            id: 'repo',
+            placeholder: 'Repository',
+            value: this.props.repo,
+            onChange: this.handleRepoChange
+          })
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-lg-2' },
+          React.createElement(
+            'button',
+            { className: 'searchField btn btn-default search-btn', type: 'submit' },
+            'Search'
+          )
+        )
+      )
     );
   }
 });
@@ -87296,8 +87316,7 @@ var IssuesBox = React.createClass({
     }).bind(this));
   },
   switchClick: function (e) {
-    this.setState({ page: 1 }, (function () {
-      this.setState({ data: [] });
+    this.setState({ data: [], page: 1 }, (function () {
       localStorage.removeItem(this.state.owner + this.state.repo + 'GithubViewerData');
       if (e === true) {
         localStorage.setItem('checked', 'checked');
@@ -87587,8 +87606,12 @@ var IssueDetails = React.createClass({
   },
 
   rawMarkup: function (markup) {
-    var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
-    return { __html: rawMarkup };
+    if (markup) {
+      var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), { sanitize: true });
+      return { __html: rawMarkup };
+    } else {
+      return { __html: '' };
+    }
   },
 
   render: function () {

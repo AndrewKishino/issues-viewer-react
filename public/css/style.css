@@ -1,30 +1,45 @@
 @charset "UTF-8";
+@import url(https://fonts.googleapis.com/css?family=Alegreya+Sans:400,800);
+body, html {
+  height: 100%;
+}
+
 #content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+  height: 100%;
 }
 
 @media screen and (max-width: 500px) {
   #content {
-    max-width: 100%;
-    min-width: 350px;
-    margin: 0 auto;
-    padding: 10px;
+    height: 100%;
   }
 }
 
+.home {
+  top: 25%;
+}
+
 .home-title {
+  color: black;
+  font-family: 'Alegreya Sans', sans-serif;
+  font-weight: 800;
   text-align: center;
-  margin: 100px 0;
+}
+
+.search-btn {
+  margin-left: 20px !important;
 }
 
 .searchForm {
   text-align: center;
+  background-color: #666;
+  float: none;
+  margin: 0 auto;
+  padding: 20px 50px 20px 20px;
+  border-radius: 3px;
 }
 
 .searchField {
-  margin: 0 15px;
+  margin: 10px 15px;
 }
 
 .issue-avatar {
@@ -80,6 +95,10 @@
   float: right;
 }
 
+.issuesBox {
+  padding: 0 20px;
+}
+
 .active-page > a {
   color: red !important;
 }
@@ -96,21 +115,28 @@
 .issues-meta {
   font-size: 12px;
   color: #777;
+  margin-left: 27px;
 }
 
 .issues-comments {
   font-size: 12px;
   margin-bottom: 20px;
+  margin-left: 27px;
+}
+
+.issues-summary {
+  display: inline-block;
+  margin-left: 26px;
 }
 
 .open-state {
   color: green;
-  margin: 0 5px 0 0;
+  margin: 0 12px 0 0;
 }
 
 .closed-state {
   color: red;
-  margin: 0 5px 0 0;
+  margin: 0 10px 0 0;
 }
 
 .no-comments {

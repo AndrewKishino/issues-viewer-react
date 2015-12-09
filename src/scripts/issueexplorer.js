@@ -21,7 +21,7 @@ var Home = React.createClass({
   render: function() {
     localStorage.clear();
     return (
-      <div className="home">
+      <div className="home col-lg-12">
         <div className="home-title">
           <h1>Github Issues Explorer</h1>
         </div>
@@ -52,24 +52,32 @@ var SearchForm = React.createClass({
   },
   render: function() {
     return (
-      <form className="searchForm" onSubmit={this.handleSubmit}>
-        <input
-          className="searchField"
-          type="text"
-          id="owner"
-          placeholder="Owner"
-          value={this.props.owner}
-          onChange={this.handleOwnerChange}
-        />
-        <input
-          className="searchField"
-          type="text"
-          id="repo"
-          placeholder="Repository"
-          value={this.props.repo}
-          onChange={this.handleRepoChange}
-        />
-        <input className="searchField" type="submit" value="Search" />
+      <form className="searchForm col-lg-6" onSubmit={this.handleSubmit}>
+        <div className="row">
+          <div className="col-lg-5">
+            <input
+              className="searchField form-control"
+              type="text"
+              id="owner"
+              placeholder="Owner"
+              value={this.props.owner}
+              onChange={this.handleOwnerChange}
+            />
+          </div>
+          <div className="col-lg-5">
+            <input
+              className="searchField form-control"
+              type="text"
+              id="repo"
+              placeholder="Repository"
+              value={this.props.repo}
+              onChange={this.handleRepoChange}
+            />
+          </div>
+          <div className="col-lg-2">
+            <button className="searchField btn btn-default search-btn" type="submit">Search</button>
+          </div>
+        </div>
       </form>
     );
   }
@@ -89,8 +97,7 @@ var IssuesBox = React.createClass({
     }).bind(this));
   },
   switchClick: function(e) {
-    this.setState({ page: 1}, (function () {
-      this.setState({data: []});
+    this.setState({data: [], page: 1}, (function () {
       localStorage.removeItem(this.state.owner + this.state.repo + 'GithubViewerData');
       if(e === true) {
         localStorage.setItem('checked', 'checked');
@@ -315,8 +322,12 @@ var IssueDetails = React.createClass({
   },
 
   rawMarkup: function(markup) {
-    var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), {sanitize: true});
-    return { __html: rawMarkup };
+    if(markup) {
+      var rawMarkup = marked(markup.toString().replace(/\@([\d\w]+)/g, '[@$1](https://github.com/$1)').replace(/<\/*cite>/g, ''), {sanitize: true});
+      return { __html: rawMarkup };
+    } else {
+      return { __html: '' };
+    }
   },
 
   render: function() {

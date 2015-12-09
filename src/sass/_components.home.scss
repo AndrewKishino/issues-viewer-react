@@ -1,12 +1,26 @@
+.home {
+  top: 25%;
+}
+
 .home-title {
+  color: black;
+  font-family: 'Alegreya Sans', sans-serif; font-weight: 800;
   text-align: center;
-  margin: 100px 0;
+}
+
+.search-btn {
+  margin-left: 20px !important;
 }
 
 .searchForm {
   text-align: center;
+  background-color: #666;
+  float: none;
+  margin: 0 auto;
+  padding: 20px 50px 20px 20px;
+  border-radius: 3px;
 }
 
 .searchField {
-  margin: 0 15px;
+  margin: 10px 15px;
 }
