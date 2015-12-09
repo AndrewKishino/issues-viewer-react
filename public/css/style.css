@@ -47,6 +47,10 @@ body, html {
   border-radius: 3px;
 }
 
+.issue-box {
+  padding: 20px;
+}
+
 .issue {
   display: block;
 }
